@@ -35,9 +35,8 @@ class NaiveBayes:
         print "prior_prob : ", self.prior_prob
         """
 
-    def laplacian(self, val, tag):
+    def conditionalProbability(self, val, tag):
 
-        """Returns conditional-probability (likelihod) with Laplacian smoothing"""
         if val in self.feat_id:
             return (self.feat_tag_cmat[self.tag_id[tag]][self.feat_id[val]] + 1.0) / \
                    (self.prior_count[tag] + self.feats_count)
@@ -55,7 +54,7 @@ class NaiveBayes:
             for val in vec:
                 for tag in self.tag_id:
                     # compute smoothed conditional probability
-                    sl_prob = self.laplacian(val, tag)
+                    sl_prob = self.conditionalProbability(val, tag)
                     smoothed_lp[tag] += np.log(sl_prob)
                     # Multiply priors
             for tag in self.tag_id:
