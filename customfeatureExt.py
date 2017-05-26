@@ -4,9 +4,11 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
+from mybayes import NaiveBayes
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
-from mybayes import NaiveBayes
 import numpy as np
 
 iphonedataset = chen.read_csv('Datasets/iphonetweets.csv', sep=',', names=['text', 'label'])
@@ -14,105 +16,193 @@ stsgolddataset = chen.read_csv('Datasets/stsgoldtweets.csv', sep=';', names=['id
 archeagedataset = chen.read_csv('Datasets/Archeagetweets.csv', sep=',', names=['text', 'label'])
 hobbitdataset = chen.read_csv('Datasets/Hobbittweets.csv', sep=',', names=['text', 'label'])
 
-feat_train_iphone, feat_test_iphone, label_train_iphone, label_test_iphone = train_test_split(iphonedataset['text'],
-                                                                    iphonedataset['label'],
-                                                                    test_size=0.3)
+print len(stsgolddataset['text'][stsgolddataset['label'] == 0])
 
-feat_train_hobbit, feat_test_hobbit, label_train_hobbit, label_test_hobbit = train_test_split(hobbitdataset['text'],
-                                                                    hobbitdataset['label'],
-                                                                    test_size=0.3)
+# bu eleman veri seti bolunurken hangi index egitime hangi index teste atildi bilbilmek icin eklendi
+index1 = np.arange(0, len(iphonedataset), 1)
 
-feat_train_arch, feat_test_arch, label_train_arch, label_test_arch = train_test_split(archeagedataset['text'],
-                                                                    archeagedataset['label'],
-                                                                    test_size=0.3)
+feat_train_iphone, feat_test_iphone, label_train_iphone, label_test_iphone, label_train_index_iphone, label_test_index_iphone = train_test_split(
+    iphonedataset['text'],
+    iphonedataset['label'], index1,
+    test_size=0.3)
+index2 = np.arange(0, len(hobbitdataset), 1)
+feat_train_hobbit, feat_test_hobbit, label_train_hobbit, label_test_hobbit, label_train_index_hobbit, label_test_index_hobbit = train_test_split(
+    hobbitdataset['text'],
+    hobbitdataset['label'], index2,
+    test_size=0.3)
+index3 = np.arange(0, len(archeagedataset), 1)
+feat_train_arch, feat_test_arch, label_train_arch, label_test_arch, label_train_index_arch, label_test_index_arch = train_test_split(
+    archeagedataset['text'],
+    archeagedataset['label'], index3,
+    test_size=0.3)
+index4 = np.arange(0, len(stsgolddataset), 1)
+feat_train_sts, feat_test_sts, label_train_sts, label_test_sts, label_train_index_sts, label_test_index_sts = train_test_split(
+    stsgolddataset['text'],
+    stsgolddataset['label'], index4,
+    test_size=0.3)
 
-feat_train_sts, feat_test_sts, label_train_sts, label_test_sts = train_test_split(stsgolddataset['text'],
-                                                                    stsgolddataset['label'],
-                                                                    test_size=0.3)
+# SVM Section
 
-#SVM Section
 HandDefinedSVM = SVC(kernel='linear')
 
-boruhatti = Pipeline ([
+boruhatti_svm = Pipeline([
     ('bag_of_words_model', CountVectorizer(analyzer=mypre)),
     ('TF&IDF', TfidfTransformer()),
     ('classifier', HandDefinedSVM)
 ])
-boruhatti.fit(feat_train_iphone, label_train_iphone)
-tahmin_iphone = boruhatti.predict(feat_test_iphone)
+boruhatti_svm.fit(feat_train_iphone, label_train_iphone)
+tahmin_iphone = boruhatti_svm.predict(feat_test_iphone)
 
 print "iphone report SVM"
 print classification_report(label_test_iphone, tahmin_iphone)
 
-boruhatti.fit(feat_train_hobbit, label_train_hobbit)
-tahmin_hobbit = boruhatti.predict(feat_test_hobbit)
+boruhatti_svm.fit(feat_train_hobbit, label_train_hobbit)
+tahmin_hobbit = boruhatti_svm.predict(feat_test_hobbit)
 
 print "hobbit report SVM"
 print classification_report(label_test_hobbit, tahmin_hobbit)
 
-boruhatti.fit(feat_train_arch, label_train_arch)
-tahmin_arch = boruhatti.predict(feat_test_arch)
+boruhatti_svm.fit(feat_train_arch, label_train_arch)
+tahmin_arch = boruhatti_svm.predict(feat_test_arch)
 
 print "archage report SVM"
 print classification_report(label_test_arch, tahmin_arch)
 
-boruhatti.fit(feat_train_sts, label_train_sts)
-tahmin_sts = boruhatti.predict(feat_test_sts)
+boruhatti_svm.fit(feat_train_sts, label_train_sts)
+tahmin_sts = boruhatti_svm.predict(feat_test_sts)
 
 print "sts report SVM"
 print classification_report(label_test_sts, tahmin_sts)
 
+# Custom Naive Bayes Section
 
-#Custom Naive Bayes Section
-def getTFIDF(feature_vec):
-    feature_NB_Bag = CountVectorizer(analyzer=mypre).fit(feature_vec)
-    feature_NB_Kc = feature_NB_Bag.transform(feature_vec)
+# typeoffeature ile olasiligin nasil hesaplanacagini kontrol edilir
+# 0 olursa multinominal naive hesaplama 1 olursa gaussian olasilik heaplama
+typeoffeature = 1  # multinominal=0,   continues=1
+clf = NaiveBayes(typeoffeature)
 
-    feature_NB_Transformer = TfidfTransformer().fit(feature_NB_Kc)
-    feature_NB_TFIDF = feature_NB_Transformer.transform(feature_NB_Kc)
+boruhatti_nb = Pipeline([
+    ('bag_of_words_model', CountVectorizer(analyzer=mypre)),
+    ('TF&IDF', TfidfTransformer()),  # TF&IDF  of TF
+    ('classifier', clf)
+])
 
-    return feature_NB_TFIDF
+boruhatti_nb.fit(feat_train_iphone, label_train_iphone)
+tahmin_iphone = boruhatti_nb.predict(feat_test_iphone)
 
-def generateSpecialMatrix(matrixed_feature):
-    outerList = []
-    for i in range(len(matrixed_feature)):
-        innerList = []
-        toplam = 0
-        for elem in matrixed_feature[i][matrixed_feature[i] != 0]:
-            toplam = toplam + elem
-        innerList.append(toplam/len(matrixed_feature[i][matrixed_feature[i] != 0]))
-        outerList.append(innerList)
-    return outerList
+print "iphone report Custom Naive Bayes"
+print classification_report(label_test_iphone, tahmin_iphone)
 
-
-iphone_NB_TFIDF_Train_matrixed = np.array(getTFIDF(feat_train_iphone).toarray())
-iphone_NB_TFIDF_Test_matrixed = np.array(getTFIDF(feat_test_iphone).toarray())
-iphone_NB_label_train = np.array(label_train_iphone.as_matrix())
-iphone_NB_label_test = np.array(label_test_iphone.as_matrix())
-
-hobbit_NB_TFIDF_Train_matrixed = np.array(getTFIDF(feat_train_hobbit).toarray())
-hobbit_NB_TFIDF_Test_matrixed = np.array(getTFIDF(feat_test_hobbit).toarray())
-hobbit_NB_label_train = np.array(label_train_hobbit.as_matrix())
-hobbit_NB_label_test = np.array(label_test_hobbit.as_matrix())
-
-outerList_hobbit_Train = generateSpecialMatrix(hobbit_NB_TFIDF_Train_matrixed)
-outerList_hobbit_Test = generateSpecialMatrix(hobbit_NB_TFIDF_Test_matrixed)
-
-
-clf = NaiveBayes()
-clf.fit(hobbit_NB_TFIDF_Train_matrixed, hobbit_NB_label_train)
-
-tahmin_2 = clf.predict(hobbit_NB_TFIDF_Test_matrixed)
+boruhatti_nb.fit(feat_train_hobbit, label_train_hobbit)
+tahmin_hobbit = boruhatti_nb.predict(feat_test_hobbit)
 
 print "hobbit report Custom Naive Bayes"
-print classification_report(hobbit_NB_label_test, tahmin_2)
+print classification_report(label_test_hobbit, tahmin_hobbit)
+
+boruhatti_nb.fit(feat_train_arch, label_train_arch)
+tahmin_arch = boruhatti_nb.predict(feat_test_arch)
+
+print "archage report Custom Naive Bayes"
+print classification_report(label_test_arch, tahmin_arch)
+
+boruhatti_nb.fit(feat_train_sts, label_train_sts)
+tahmin_sts = boruhatti_nb.predict(feat_test_sts)
+
+print "sts report Custom Naive Bayes"
+print classification_report(label_test_sts, tahmin_sts)
+
+# Decision Tree Section
+
+clf_dt = DecisionTreeClassifier()
+
+boruhatti_dt = Pipeline([
+    ('bag_of_words_model', CountVectorizer(analyzer=mypre)),
+    ('TF&IDF', TfidfTransformer()),
+    ('classifier', clf_dt)
+])
+
+boruhatti_dt.fit(feat_train_iphone, label_train_iphone)
+tahmin_iphone = boruhatti_dt.predict(feat_test_iphone)
+
+print "Iphone report Decision Tree"
+print classification_report(label_test_iphone, tahmin_iphone)
+
+boruhatti_dt.fit(feat_train_hobbit, label_train_hobbit)
+tahmin_hobbit = boruhatti_dt.predict(feat_test_hobbit)
+
+print "Hobbit report Decision Tree"
+print classification_report(label_test_hobbit, tahmin_hobbit)
+
+boruhatti_dt.fit(feat_train_arch, label_train_arch)
+tahmin_arch = boruhatti_dt.predict(feat_test_arch)
+
+print "Archage report Decision Tree"
+print classification_report(label_test_arch, tahmin_arch)
+
+boruhatti_dt.fit(feat_train_sts, label_train_sts)
+tahmin_sts = boruhatti_dt.predict(feat_test_sts)
+
+print "sts report Decision Tree"
+print classification_report(label_test_sts, tahmin_sts)
 
 
+# Linear Regression Section
+
+def categorize_lr(predictions, unique_labels): #Linear reggresion icin kategorilestirme
+    list_of_labels = []
+    for elem in predictions:
+        if elem < 0 and 0 in unique_labels :
+            list_of_labels.append(0)
+        elif elem > 0 and 4 in unique_labels:
+            list_of_labels.append(4)
+        elif elem < 0 and -1 in unique_labels:
+            list_of_labels.append(-1)
+        elif elem >0 and 1 in unique_labels:
+            list_of_labels.append(1)
+        else:
+            print "Etiket bilgisi taninamadi."
+            break
+
+    return list_of_labels
 
 
+rgr_lr = LinearRegression()
+
+boruhatti_lr = Pipeline([
+    ('bag_of_words_model', CountVectorizer(analyzer=mypre)),
+    ('TF&IDF', TfidfTransformer()),
+    ('regression', rgr_lr)
+])
+
+boruhatti_lr.fit(feat_train_iphone, label_train_iphone)
+tahmin_iphone = boruhatti_lr.predict(feat_test_iphone)
+lr_tahmin_labels = categorize_lr(tahmin_iphone, np.unique(label_train_iphone))
+
+print "Iphone report Linear Regression"
+print classification_report(label_test_iphone, lr_tahmin_labels)
 
 
+boruhatti_lr.fit(feat_train_hobbit, label_train_hobbit)
+tahmin_hobbit = boruhatti_lr.predict(feat_test_hobbit)
+lr_tahmin_labels = categorize_lr(tahmin_hobbit, np.unique(label_train_hobbit))
 
+print "Hobbit report Linear Regression"
+print classification_report(label_test_hobbit, lr_tahmin_labels)
+
+boruhatti_lr.fit(feat_train_arch, label_train_arch)
+tahmin_arch = boruhatti_lr.predict(feat_test_arch)
+lr_tahmin_labels = categorize_lr(tahmin_arch, np.unique(label_train_arch))
+
+print "Archage report Linear Regression"
+print classification_report(label_test_arch, lr_tahmin_labels)
+
+
+boruhatti_lr.fit(feat_train_sts, label_train_sts)
+tahmin_sts = boruhatti_lr.predict(feat_test_sts)
+lr_tahmin_labels = categorize_lr(tahmin_sts, np.unique(label_train_sts))
+
+print "Sts report Linear Regression"
+print classification_report(label_test_sts, lr_tahmin_labels)
 
 """
 #Sklearn Naive Bayes Section

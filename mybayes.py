@@ -2,63 +2,67 @@ import numpy as np
 
 class NaiveBayes:
 
+    def __init__(self,tpy):
+        self.typ = tpy
+
     def fit(self, X, y):
-        self.training_data = np.asarray(X)
+        # useClassProb False olursa class larin posterior olasiliklari esit kabul edilir.
+        # true olursa egitim kumesindeki sayilara gore posterior olasiliklar belirlenir.
+        useClassProb = False
+
+        self.training_data = X.toarray() 
         self.training_labels = np.asarray(y)
+        self.unique_labels = np.unique(self.training_labels)
+        self.CP= np.zeros((len(self.unique_labels)))        
+        self.Tpl=np.zeros( (len(self.unique_labels),len(self.training_data[0, :])))
+        
 
-        unique_labels = np.unique(self.training_labels)
-        unique_feats = np.unique(self.training_data)
-        label_count = dict()
-
-        self.feats_count = len(unique_feats)
-        self.feat_tag_cmat = np.zeros((len(unique_labels), self.feats_count))
-        self.tag_id = {tag: i for i, tag in enumerate(unique_labels)}
-        self.feat_id = {feat: i for i, feat in enumerate(unique_feats)}
-
-        for vec, lbl in zip(self.training_data, self.training_labels):
-            label_count.setdefault(lbl, 0)
-            label_count[lbl] += 1
-            for x in vec:
-                self.feat_tag_cmat[self.tag_id[lbl]][self.feat_id[x]] += 1
-
-        self.prior_count = label_count
-        self.prior_prob = {tag: label_count[tag] / float(len(self.training_labels)) \
-                           for tag in unique_labels}
-
-        """
-        print "label-count : ",label_count
-        print "feat_counts : ", self.feats_count
-        print "feat_tag_cmat : ", self.feat_tag_cmat
-        print "tag_id : ", self.tag_id
-        print "feat_id : ", self.feat_id
-        print "prior_count : ", self.prior_count
-        print "prior_prob : ", self.prior_prob
-        """
-
-    def conditionalProbability(self, val, tag):
-
-        if val in self.feat_id:
-            return (self.feat_tag_cmat[self.tag_id[tag]][self.feat_id[val]] + 1.0) / \
-                   (self.prior_count[tag] + self.feats_count)
+        self.MEAN=np.zeros((len(self.unique_labels),len(self.training_data[0, :])))
+        self.VAR=np.zeros((len(self.unique_labels),len(self.training_data[0, :])))
+          
+        snf = -1
+        for i in self.unique_labels: # ornek icin bu dongu 2 kez calisir ama daha cok elemanli problemlere de uygundur
+            snf += 1
+            # ilgili sinifin elemanlari bulunuyor
+            I=(self.training_labels == i)
+            data=self.training_data[I] 
+            self.CP[snf]=len(data[:,0])
+            for j in range(0, len(data[0, :])): # tum farkli kelimemelr icin bu dongu doner
+                self.Tpl[snf, j] = np.sum(data[:, j])
+                self.MEAN[snf, j] = np.mean(data[:, j])
+                self.VAR[snf, j] = np.var(data[:, j]) + 0.1  # varyns 0 olmasi durumunda olasiligi sifirlanmasini engellemek icin
+            self.Tpl[snf, :] = 1+(self.Tpl[snf, :])/(np.sum(self.Tpl[snf, :]))
+            
+        if useClassProb==False:
+            for i in range(0,len(self.unique_labels)):
+                # false ise 2 class icin her iki class posterior unu 0.5 yapar
+                self.CP[i]=1.0/len(self.unique_labels)
         else:
-            return 1.0 / (self.prior_count[tag] + self.feats_count)
+            xx=np.sum(self.CP)
+            for i in range(0,len(self.unique_labels)):
+                # true ise egitim kuseinde bulunan elemanlara gore agirlik ayarlar
+                self.CP[i]=self.CP[i]/xx
+    
 
     def predict(self, testing_data):
+        testing_data=testing_data.toarray()
+        labels = np.zeros( (len(testing_data[:, 0])))
 
-        labels = []
-        testing_data = np.asarray(testing_data)
-
-        for i, vec in enumerate(testing_data):
-            # initialize smoothed log probabilities for each tag
-            smoothed_lp = {tag: 0.0 for tag in self.tag_id}
-            for val in vec:
-                for tag in self.tag_id:
-                    # compute smoothed conditional probability
-                    sl_prob = self.conditionalProbability(val, tag)
-                    smoothed_lp[tag] += np.log(sl_prob)
-                    # Multiply priors
-            for tag in self.tag_id:
-                smoothed_lp[tag] += self.prior_prob[tag]
-            labels.append(max(smoothed_lp.items(), key=lambda x: x[1])[0])
-
+        for i in range(0, len(testing_data[:, 0])):
+             sonuc=0
+             probsonuc=-1
+             for snf in range(0, len(self.unique_labels)):
+                 prob=np.ones(len(self.unique_labels))
+                 prob[snf] = self.CP[snf]
+                 for j in range(0, len(testing_data[0, :])):
+                     feat=testing_data[i, j]
+                     if feat>0:
+                         if self.typ == 0:
+                            prob[snf] = prob[snf]*feat*self.Tpl[snf, j]
+                         else:
+                            prob[snf] = prob[snf]*1/np.sqrt(2*np.pi*self.VAR[snf, j])*np.exp(-(feat-self.MEAN[snf, j])*(feat-self.MEAN[snf, j])/(2*self.VAR[snf, j]))
+                 if  prob[snf] > probsonuc:
+                     probsonuc = prob[snf]
+                     sonuc = snf
+             labels[i] = self.unique_labels[sonuc]
         return labels
