@@ -32,7 +32,6 @@ def preprocess(listoftext):
     punctuationremoved = ''.join(punctuationremoved)
 
     advancedremoved = emojipattern.sub(r'', punctuationremoved.decode('utf-8'))
-  # advancedremoved = advancedremoved.encode('utf-8')
     advancedremoved = httppattern.sub(r'', advancedremoved)
 
     stopwordsremoved = [word for word in advancedremoved.split() if word.lower() not in customstopwords]
@@ -44,18 +43,26 @@ if __name__ == '__main__':
     stsgolddataset = chen.read_csv('Datasets/stsgoldtweets.csv', sep=';', names=['id', 'label', 'text'])
     archeagedataset = chen.read_csv('Datasets/Archeagetweets.csv', sep=',', names=['text', 'label'])
     hobbitdataset = chen.read_csv('Datasets/Hobbittweets.csv', sep=',', names=['text', 'label'])
+    moviedataset = chen.read_csv('Datasets/movietweets.txt',sep="	",names=['label', 'text'])
 
     iphoneTextset = iphonedataset['text']
     stsgoldTextset = stsgolddataset['text']
     archeageTextset = archeagedataset['text']
     hobbitTextset = hobbitdataset['text']
+    movieTextset = moviedataset['text']
+
+    iphonedataset_pre = iphoneTextset.apply(preprocess)
+    stsgolddataset_pre = stsgoldTextset.apply(preprocess)
+    hobbitdataset_pre = hobbitTextset.apply(preprocess)
+    archeagedataset_pre = archeageTextset.apply(preprocess)
+    moviedataset_pre = movieTextset.apply(preprocess)
+
+    print "Example"
+    print movieTextset
+    print "-------------"
+    print moviedataset_pre
 
 
-    iphonedataset = iphoneTextset.apply(preprocess)
-    stsgolddataset = stsgoldTextset.apply(preprocess)
-    hobbitdataset = hobbitTextset.apply(preprocess)
-    archeagedataset = archeageTextset.apply(preprocess)
 
-    print '\n'
-    print iphonedataset
-    print hobbitdataset
+
+

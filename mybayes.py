@@ -2,9 +2,6 @@ import numpy as np
 
 class NaiveBayes:
 
-    def __init__(self,tpy):
-        self.typ = tpy
-
     def fit(self, X, y):
         # useClassProb False olursa class larin posterior olasiliklari esit kabul edilir.
         # true olursa egitim kumesindeki sayilara gore posterior olasiliklar belirlenir.
@@ -14,11 +11,11 @@ class NaiveBayes:
         self.training_labels = np.asarray(y)
         self.unique_labels = np.unique(self.training_labels)
         self.CP= np.zeros((len(self.unique_labels)))        
-        self.Tpl=np.zeros( (len(self.unique_labels),len(self.training_data[0, :])))
+        self.Tpl=np.zeros( (len(self.unique_labels), len(self.training_data[0, :])))
         
 
-        self.MEAN=np.zeros((len(self.unique_labels),len(self.training_data[0, :])))
-        self.VAR=np.zeros((len(self.unique_labels),len(self.training_data[0, :])))
+        self.MEAN=np.zeros((len(self.unique_labels), len(self.training_data[0, :])))
+        self.VAR=np.zeros((len(self.unique_labels), len(self.training_data[0, :])))
           
         snf = -1
         for i in self.unique_labels: # ornek icin bu dongu 2 kez calisir ama daha cok elemanli problemlere de uygundur
@@ -57,10 +54,7 @@ class NaiveBayes:
                  for j in range(0, len(testing_data[0, :])):
                      feat=testing_data[i, j]
                      if feat>0:
-                         if self.typ == 0:
-                            prob[snf] = prob[snf]*feat*self.Tpl[snf, j]
-                         else:
-                            prob[snf] = prob[snf]*1/np.sqrt(2*np.pi*self.VAR[snf, j])*np.exp(-(feat-self.MEAN[snf, j])*(feat-self.MEAN[snf, j])/(2*self.VAR[snf, j]))
+                        prob[snf] = prob[snf]*1/np.sqrt(2*np.pi*self.VAR[snf, j])*np.exp(-(feat-self.MEAN[snf, j])*(feat-self.MEAN[snf, j])/(2*self.VAR[snf, j]))
                  if  prob[snf] > probsonuc:
                      probsonuc = prob[snf]
                      sonuc = snf
